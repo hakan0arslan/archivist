@@ -7,14 +7,14 @@ This bot is created to archive all messages. It will create a token to see and s
 
 Command can be used to trigger bot. It will send a message to same channel containing archive url and generated token.
 This token has permission to see only this channels messages
-This token has an expiry time.
+Token has an expiry time.
 
 !token
 
 Command can be used to renew token.
 
 Running
-It is using meilisearch instance to archive all messages.
+It is using meili search instance to archive all messages.
 
 
 Adding Bot to Server
@@ -61,6 +61,11 @@ This key can be used later to read all messages or to create token.
 MEILI_SEARCH_READ_TOKEN_TIMEOUT_IN_SECONDS this is timeout for created token default is 1 week.
 
 ### Run Bot with Docker ###
+First build project to create .lock file 
+~~~
+cargo b --release
+~~~
+
 ~~~
 docker build -t archivist .
 ~~~
