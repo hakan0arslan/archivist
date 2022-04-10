@@ -2,35 +2,39 @@ use crate::DiscordMessage;
 use futures::executor::block_on;
 use meilisearch_sdk::client::*;
 
+use meilisearch_sdk::errors::Error;
 use std::env;
 use std::ops::Add;
-use meilisearch_sdk::errors::Error;
 
 use meilisearch_sdk::key::{Action, Key, KeyBuilder};
 use time::{Duration, OffsetDateTime};
 
-pub fn insert_messages(messages: Vec<DiscordMessage>, index_name: String) {
+pub fn insert_messages(messages: &[DiscordMessage], index_name: String) {
     block_on(async move {
-        create_client()
+        if let Err(why) = create_client()
             .index(index_name.clone())
-            .add_documents(&messages, None)
+            .add_documents(messages, Some("id"))
             .await
-            .unwrap();
+        {
+            eprintln!("Error sending message: {:?}", why);
+        }
     });
 }
 
 pub fn create_client() -> Client {
-    let url = env::var("MEILI_SEARCH_URL").unwrap_or(String::from("http://localhost:7700"));
+    let url =
+        env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| String::from("http://localhost:7700"));
 
-    let master_key = env::var("MEILI_SEARCH_MASTER_KEY").unwrap_or(String::from("masterKey"));
+    let master_key =
+        env::var("MEILI_SEARCH_MASTER_KEY").unwrap_or_else(|_| String::from("masterKey"));
 
     Client::new(url, master_key)
 }
 
 pub async fn create_key(client: Client, index: String) -> Result<Key, Error> {
     let mut key_options = KeyBuilder::new(format!("Add documents: {} API key", index));
-    let duration_in_seconds =
-        env::var("MEILI_SEARCH_READ_TOKEN_TIMEOUT_IN_SECONDS").unwrap_or(String::from("604800"));
+    let duration_in_seconds = env::var("MEILI_SEARCH_READ_TOKEN_TIMEOUT_IN_SECONDS")
+        .unwrap_or_else(|_| String::from("604800"));
 
     key_options
         .with_action(Action::DocumentsGet)

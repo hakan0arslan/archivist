@@ -20,75 +20,100 @@ struct Handler;
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!archive" {
-            let mut messages = msg.channel_id.messages_iter(&ctx).boxed();
-
-            let mut discord_messages: Vec<DiscordMessage> = Vec::new();
-            while let Some(message_result) = messages.next().await {
-                match message_result {
-                    Ok(message) => discord_messages.push(DiscordMessage::new(
-                        message.id.to_string(),
-                        message.author.id.to_string(),
-                        message.author.name.to_string(),
-                        message.content,
-                        message.timestamp.to_string(),
-                        message.author.avatar,
-                    )),
-                    Err(error) => eprintln!("Error while getting message: {}", error),
-                }
-            }
-            let channel_name = msg
-                .channel_id
-                .to_channel(&ctx)
-                .await
-                .unwrap()
-                .guild()
-                .unwrap()
-                .name;
-
-            let index_name = format!("{}_{}", channel_name, msg.channel_id.to_string());
-            meili_search::insert_messages(discord_messages, index_name.clone());
-
-            let key = meili_search::create_key(meili_search::create_client(), index_name).await;
-
-            let extracted_key = match key {
-                Ok(key) => key.key,
-                _ => "Probably no authentication required or master key is wrong".to_string(),
-            };
-
-            let url = env::var("MEILI_SEARCH_URL").unwrap_or("http://localhost:7700".to_string());
-
-            if let Err(why) = msg.channel_id.say(&ctx.http, format!("Messages archived from this channel check {} with token ```{}``` type !token to renew token", url, extracted_key)).await {
-                eprintln!("Error sending message: {:?}", why);
-            }
-        } else if msg.content == "!token" {
-            let channel_name = msg
-                .channel_id
-                .to_channel(&ctx)
-                .await
-                .unwrap()
-                .guild()
-                .unwrap()
-                .name;
-            let index_name = format!("{}_{}", channel_name, msg.channel_id.to_string());
-            let key = meili_search::create_key(meili_search::create_client(), index_name)
-                .await;
-
-            let extracted_key = match key {
-                Ok(key) => key.key,
-                _ => "Probably no authentication required or master key is wrong".to_string(),
-            };
-
             if let Err(why) = msg
                 .channel_id
-                .say(&ctx.http, format!("Here is your token ```{}```", extracted_key))
+                .say(&ctx.http, "Your messages will be archived with batches. You can check status of archive with sent token.")
                 .await
             {
                 eprintln!("Error sending message: {:?}", why);
             }
+            send_token_to_channel(&ctx, &msg).await;
+            let mut messages = msg.channel_id.messages_iter(&ctx).boxed();
+
+            let index_name = prepare_index_name(&ctx, &msg).await;
+
+            let mut discord_messages: Vec<DiscordMessage> = Vec::new();
+
+            let mut counter = 0;
+            while let Some(message_result) = messages.next().await {
+                match message_result {
+                    Ok(message) => {
+                        if counter < 100 {
+                            discord_messages.push(DiscordMessage::new(
+                                message.id.to_string(),
+                                message.author.id.to_string(),
+                                message.author.name.to_string(),
+                                message.content,
+                                message.timestamp.to_string(),
+                                message.author.avatar,
+                            ));
+                            counter += 1;
+                        } else {
+                            meili_search::insert_messages(
+                                discord_messages.as_slice(),
+                                index_name.clone(),
+                            );
+
+                            discord_messages.clear();
+                            counter = 0;
+                        }
+                    }
+                    Err(error) => eprintln!("Error while getting message: {}", error),
+                }
+            }
+            if !discord_messages.is_empty() {
+                meili_search::insert_messages(discord_messages.as_slice(), index_name.clone());
+            }
+
+            let url = env::var("MEILI_SEARCH_URL")
+                .unwrap_or_else(|_| "http://localhost:7700".to_string());
+
+            if let Err(why) = msg.channel_id
+                .say(&ctx.http, format!("Messages archived from this channel check {} with provided token type !token to renew token", url))
+                .await {
+                eprintln!("Error sending message: {:?}", why);
+            }
+        } else if msg.content == "!token" {
+            send_token_to_channel(&ctx, &msg).await;
         }
     }
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+    }
+}
+
+async fn prepare_index_name(ctx: &Context, msg: &Message) -> String {
+    let channel_name = msg
+        .channel_id
+        .to_channel(&ctx)
+        .await
+        .unwrap()
+        .guild()
+        .unwrap()
+        .name;
+    let index_name = format!("{}_{}", channel_name, msg.channel_id);
+    index_name
+}
+
+async fn send_token_to_channel(ctx: &Context, msg: &Message) {
+    let index_name = prepare_index_name(ctx, msg).await;
+    let key = meili_search::create_key(meili_search::create_client(), index_name).await;
+
+    let extracted_key = match key {
+        Ok(key) => key.key,
+        _ => "Probably no authentication required or master key is wrong".to_string(),
+    };
+    let url = env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| "http://localhost:7700".to_string());
+
+    if let Err(why) = msg
+        .channel_id
+        .say(
+            &ctx.http,
+            format!("Here is your token for {} ```{}```", url, extracted_key),
+        )
+        .await
+    {
+        eprintln!("Error sending message: {:?}", why);
     }
 }
 
