@@ -25,7 +25,7 @@ impl EventHandler for Handler {
                 .say(&ctx.http, "Your messages will be archived with batches. You can check status of archive with sent token.")
                 .await
             {
-                eprintln!("Error sending message: {:?}", why);
+                eprintln!("Error sending batch information message: {:?}", why);
             }
             send_token_to_channel(&ctx, &msg).await;
             let mut messages = msg.channel_id.messages_iter(&ctx).boxed();
@@ -97,7 +97,7 @@ async fn prepare_index_name(ctx: &Context, msg: &Message) -> String {
 
 async fn send_token_to_channel(ctx: &Context, msg: &Message) {
     let index_name = prepare_index_name(ctx, msg).await;
-    let key = meili_search::create_key(meili_search::create_client(), index_name).await;
+    let key = meili_search::create_read_key(meili_search::create_client(), index_name).await;
 
     let extracted_key = match key {
         Ok(key) => key.key,
