@@ -16,19 +16,13 @@ pub fn insert_messages<T: Document>(documents: &[T], index_name: String) {
             .add_documents(documents, Some("id"))
             .await
         {
-            eprintln!("Error archiving messages: {:?}", why);
+            eprintln!("Error archiving documents: {:?}", why);
         }
     });
 }
 
 pub fn create_client() -> Client {
-    let url =
-        env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| String::from("http://localhost:7700"));
-
-    let master_key =
-        env::var("MEILI_SEARCH_MASTER_KEY").unwrap_or_else(|_| String::from("masterKey"));
-
-    Client::new(url, master_key)
+    Client::new(retrieve_url(), retrieve_master_key())
 }
 
 pub async fn create_read_key(client: Client, index: String) -> Result<Key, Error> {
@@ -51,4 +45,12 @@ pub async fn create_read_key(client: Client, index: String) -> Result<Key, Error
         .with_index(index);
 
     client.create_key(key_options).await
+}
+
+pub fn retrieve_url() -> String {
+    env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| String::from("http://localhost:7700"))
+}
+
+pub fn retrieve_master_key() -> String {
+    env::var("MEILI_SEARCH_MASTER_KEY").unwrap_or_else(|_| String::from("masterKey"))
 }
