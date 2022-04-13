@@ -65,13 +65,12 @@ impl EventHandler for Handler {
                 meili_search::insert_messages(discord_messages.as_slice(), index_name.clone());
             }
 
-            let url = env::var("MEILI_SEARCH_URL")
-                .unwrap_or_else(|_| "http://localhost:7700".to_string());
+            let url = meili_search::retrieve_url();
 
             if let Err(why) = msg.channel_id
                 .say(&ctx.http, format!("Messages archived from this channel check {} with provided token type !token to renew token", url))
                 .await {
-                eprintln!("Error sending message: {:?}", why);
+                eprintln!("Error sending final message: {:?}", why);
             }
         } else if msg.content == "!token" {
             send_token_to_channel(&ctx, &msg).await;
@@ -103,7 +102,7 @@ async fn send_token_to_channel(ctx: &Context, msg: &Message) {
         Ok(key) => key.key,
         _ => "Probably no authentication required or master key is wrong".to_string(),
     };
-    let url = env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| "http://localhost:7700".to_string());
+    let url = meili_search::retrieve_url();
 
     if let Err(why) = msg
         .channel_id
