@@ -1,24 +1,21 @@
-use futures::executor::block_on;
 use meilisearch_sdk::client::*;
 
+use meilisearch_sdk::document::Document;
 use meilisearch_sdk::errors::Error;
 use std::env;
 use std::ops::Add;
-use meilisearch_sdk::document::Document;
 
 use meilisearch_sdk::key::{Action, Key, KeyBuilder};
 use time::{Duration, OffsetDateTime};
 
-pub fn insert_messages<T: Document>(documents: &[T], index_name: String) {
-    block_on(async move {
-        if let Err(why) = create_client()
-            .index(index_name)
-            .add_documents(documents, Some("id"))
-            .await
-        {
-            eprintln!("Error archiving documents: {:?}", why);
-        }
-    });
+pub async fn add_documents<T: Document>(documents: &[T], index_name: String) {
+    if let Err(why) = create_client()
+        .index(index_name)
+        .add_documents(documents, Some("id"))
+        .await
+    {
+        eprintln!("Error archiving documents: {:?}", why);
+    }
 }
 
 pub fn create_client() -> Client {
@@ -26,7 +23,7 @@ pub fn create_client() -> Client {
 }
 
 pub async fn create_read_key(client: Client, index: String) -> Result<Key, Error> {
-    let mut key_options = KeyBuilder::new(format!("Add documents: {} API key", index));
+    let mut key_options = KeyBuilder::new(format!("Read documents: {} API key", index));
     let duration_in_seconds = env::var("MEILI_SEARCH_READ_TOKEN_TIMEOUT_IN_SECONDS")
         .unwrap_or_else(|_| String::from("604800"));
 
@@ -51,6 +48,6 @@ pub fn retrieve_url() -> String {
     env::var("MEILI_SEARCH_URL").unwrap_or_else(|_| String::from("http://localhost:7700"))
 }
 
-pub fn retrieve_master_key() -> String {
+fn retrieve_master_key() -> String {
     env::var("MEILI_SEARCH_MASTER_KEY").unwrap_or_else(|_| String::from("masterKey"))
 }

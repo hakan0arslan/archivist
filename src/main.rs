@@ -49,10 +49,10 @@ impl EventHandler for Handler {
                             ));
                             counter += 1;
                         } else {
-                            meili_search::insert_messages(
+                            meili_search::add_documents(
                                 discord_messages.as_slice(),
                                 index_name.clone(),
-                            );
+                            ).await;
 
                             discord_messages.clear();
                             counter = 0;
@@ -62,7 +62,7 @@ impl EventHandler for Handler {
                 }
             }
             if !discord_messages.is_empty() {
-                meili_search::insert_messages(discord_messages.as_slice(), index_name.clone());
+                meili_search::add_documents(discord_messages.as_slice(), index_name.clone()).await;
             }
 
             let url = meili_search::retrieve_url();
