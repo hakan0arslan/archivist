@@ -15,7 +15,7 @@ pub async fn add_documents<T: Document>(documents: &[T], index_name: String) {
         .await
     {
         eprintln!("Error archiving documents: {:?}", why);
-    }
+    };
 }
 
 pub fn create_client() -> Client {

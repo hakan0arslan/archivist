@@ -1,7 +1,7 @@
 Discord Bot to Archive Messages
 ============
 
-This bot is created to archive all messages. It will create a token to see and search this messages. 
+This bot is created to archive all messages of channel. It will create a token to see and search this messages. 
 
 !archive
 
@@ -13,7 +13,6 @@ Token has an expiry time.
 
 Command can be used to renew token.
 
-Running
 It is using meili search instance to archive all messages.
 
 
