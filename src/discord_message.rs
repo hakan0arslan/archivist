@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use meilisearch_sdk::document::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -21,6 +22,7 @@ impl DiscordMessage {
         content: String,
         timestamp: String,
         avatar_id: Option<String>,
+        edited: Option<DateTime<Utc>>,
     ) -> DiscordMessage {
         let mut avatar_url = None;
 
@@ -30,7 +32,16 @@ impl DiscordMessage {
                 user_id, avatar
             ));
         }
-        let id = Uuid::new_v4();
+        // if we create new uuid every time it archives same messages multiple times
+        // uuid v5 makes it possible to create repeatable uuid
+        // this way we only archive edited messages without overwriting non edited messages
+        let mut base_id = discord_id.clone();
+
+        if let Some(edit_date) = edited {
+            base_id = format!("{}_{}", base_id, edit_date)
+        }
+
+        let id = Uuid::new_v5(&Uuid::NAMESPACE_OID, base_id.as_bytes());
 
         DiscordMessage {
             id,

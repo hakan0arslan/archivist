@@ -46,6 +46,7 @@ impl EventHandler for Handler {
                                 message.content,
                                 message.timestamp.to_string(),
                                 message.author.avatar,
+                                message.edited_timestamp
                             ));
                             counter += 1;
                         } else {
