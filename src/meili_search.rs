@@ -1,14 +1,14 @@
 use meilisearch_sdk::client::*;
 
-use meilisearch_sdk::document::Document;
 use meilisearch_sdk::errors::Error;
 use std::env;
 use std::ops::Add;
 
+use crate::discord_message::DiscordMessage;
 use meilisearch_sdk::key::{Action, Key, KeyBuilder};
 use time::{Duration, OffsetDateTime};
 
-pub async fn add_documents<T: Document>(documents: &[T], index_name: String) {
+pub async fn add_documents(documents: &[DiscordMessage], index_name: String) {
     if let Err(why) = create_client()
         .index(index_name)
         .add_documents(documents, Some("id"))
@@ -23,7 +23,7 @@ pub fn create_client() -> Client {
 }
 
 pub async fn create_read_key(client: Client, index: String) -> Result<Key, Error> {
-    let mut key_options = KeyBuilder::new(format!("Read documents: {} API key", index));
+    let mut key_options = KeyBuilder::new();
     let duration_in_seconds = env::var("MEILI_SEARCH_READ_TOKEN_TIMEOUT_IN_SECONDS")
         .unwrap_or_else(|_| String::from("604800"));
 
@@ -32,7 +32,6 @@ pub async fn create_read_key(client: Client, index: String) -> Result<Key, Error
         .with_action(Action::Search)
         .with_action(Action::IndexesGet)
         .with_action(Action::Version)
-        .with_action(Action::DumpsGet)
         .with_action(Action::SettingsGet)
         .with_action(Action::StatsGet)
         .with_action(Action::TasksGet)

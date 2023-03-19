@@ -1,4 +1,4 @@
-FROM rust:1.59.0 as build
+FROM rust:1.68.0 as build
 
 # create a new empty shell project
 RUN USER=root cargo new --bin archivist
@@ -20,7 +20,7 @@ RUN rm ./target/release/deps/archivist*
 RUN cargo build --release
 
 # our final base
-FROM rust:1.59.0
+FROM rust:1.68.0
 
 # copy the build artifact from the build stage
 COPY --from=build /archivist/target/release/archivist .

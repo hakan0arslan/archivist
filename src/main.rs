@@ -46,14 +46,15 @@ impl EventHandler for Handler {
                                 message.content,
                                 message.timestamp.to_string(),
                                 message.author.avatar,
-                                message.edited_timestamp
+                                message.edited_timestamp.map(|x| x.to_string()),
                             ));
                             counter += 1;
                         } else {
                             meili_search::add_documents(
                                 discord_messages.as_slice(),
                                 index_name.clone(),
-                            ).await;
+                            )
+                            .await;
 
                             discord_messages.clear();
                             counter = 0;
@@ -101,7 +102,10 @@ async fn send_token_to_channel(ctx: &Context, msg: &Message) {
 
     let extracted_key = match key {
         Ok(key) => key.key,
-        _ => "Probably no authentication required or master key is wrong".to_string(),
+        Err(e) => {
+            eprint!("{}", e);
+            "Probably no authentication required or master key is wrong".to_string()
+        }
     };
     let url = meili_search::retrieve_url();
 
@@ -122,7 +126,8 @@ async fn main() {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN").expect("Expected DISCORD_TOKEN in the environment");
 
-    let mut client = Client::builder(&token)
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
+    let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
         .await
         .expect("Err creating client");

@@ -1,5 +1,3 @@
-use chrono::{DateTime, Utc};
-use meilisearch_sdk::document::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -22,7 +20,7 @@ impl DiscordMessage {
         content: String,
         timestamp: String,
         avatar_id: Option<String>,
-        edited: Option<DateTime<Utc>>,
+        edited: Option<String>,
     ) -> DiscordMessage {
         let mut avatar_url = None;
 
@@ -52,12 +50,5 @@ impl DiscordMessage {
             timestamp,
             avatar_url,
         }
-    }
-}
-
-impl Document for DiscordMessage {
-    type UIDType = Uuid;
-    fn get_uid(&self) -> &Self::UIDType {
-        &self.id
     }
 }
